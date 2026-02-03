@@ -10,7 +10,7 @@ use zip::ZipArchive;
 
 fn main() -> Result<()> {
     // Check for --test flag
-    let test_mode = true;
+    let test_mode = false;
     if test_mode {
         println!("*** TEST MODE: Files will NOT be deleted on CRC mismatch ***");
     }
