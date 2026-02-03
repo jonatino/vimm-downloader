@@ -1,0 +1,3 @@
+- Start downloading next file when extracting/verifying. If fails, requeue to download
+- Support cases where multiple files are in the zip, eg https://vimm.net/vault/9347 its not 1 iso file it has multiple files with multiple hashes
+- Show elapsed time on the progress bar

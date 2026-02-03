@@ -3,6 +3,7 @@ use base64::Engine;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::blocking::Client;
 use scraper::{Html, Selector};
+use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;
@@ -20,12 +21,15 @@ fn main() -> Result<()> {
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()?;
 
+    let mut completed_urls: HashSet<String> = HashSet::new();
+
     loop {
         let urls: Vec<String> = fs::read_to_string("links.txt")
             .unwrap_or_default()
             .lines()
             .map(|s| s.trim())
             .filter(|s| !s.is_empty() && !s.starts_with('#') && s.contains("vimm.net/vault/"))
+            .filter(|s| !completed_urls.contains(*s))
             .map(String::from)
             .collect();
 
@@ -41,17 +45,23 @@ fn main() -> Result<()> {
                 Ok(true) => {
                     any_downloaded = true;
                     println!("Completed: {}\n", url);
+                    completed_urls.insert(url.clone());
                 }
-                Ok(false) => println!("Already exists: {}\n", url),
+                Ok(false) => {
+                    println!("Already exists: {}\n", url);
+                    completed_urls.insert(url.clone());
+                }
                 Err(e) => eprintln!("Error: {} - {}\n", url, e),
             }
         }
 
         if !any_downloaded {
-            println!("All done. Waiting for new links...");
-            std::thread::sleep(std::time::Duration::from_secs(5));
+            println!("All done.");
+            break;
         }
     }
+
+    Ok(())
 }
 
 fn process_url(client: &Client, url: &str, test_mode: bool) -> Result<bool> {
@@ -141,7 +151,7 @@ fn process_url(client: &Client, url: &str, test_mode: bool) -> Result<bool> {
                         download_ok = false;
                         break;
                     }
-                    
+
                     pb.inc(n as u64);
                 }
                 Err(err) => {
