@@ -121,7 +121,8 @@ fn process_url(client: &Client, url: &str, test_mode: bool) -> Result<bool> {
 
         let pending_name = format!("{}.pending", archive_name);
         let pending = Path::new("downloads").join(&pending_name);
-        let total = response.content_length().unwrap_or(0);
+        let total = response.content_length().expect("Invalid response, it did not have content length");
+        
         let pb = ProgressBar::new(total);
         pb.set_style(ProgressStyle::default_bar()
             .template("{bar:40.cyan/blue} {bytes}/{total_bytes} ({eta})")?
@@ -134,13 +135,17 @@ fn process_url(client: &Client, url: &str, test_mode: bool) -> Result<bool> {
             match response.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
-                    if file.write_all(&buf[..n]).is_err() {
+                    let result = file.write_all(&buf[..n]);
+                    if let Err(err) = result {
+                        eprintln!("File write error: {:?}", err);
                         download_ok = false;
                         break;
                     }
+                    
                     pb.inc(n as u64);
                 }
-                Err(_) => {
+                Err(err) => {
+                    eprintln!("Download read error: {:?}", err);
                     download_ok = false;
                     break;
                 }
